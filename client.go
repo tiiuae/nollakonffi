@@ -205,83 +205,123 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 			sections := append(msg.Answer, msg.Ns...)
 			sections = append(sections, msg.Extra...)
 
-			for _, answer := range sections {
-				switch rr := answer.(type) {
-				case *dns.PTR:
-					if params.ServiceName() != rr.Hdr.Name {
-						continue
-					}
-					if params.ServiceInstanceName() != "" && params.ServiceInstanceName() != rr.Ptr {
-						continue
-					}
+			if isDNSSDResponse(sections) {
+				//fmt.Printf("DNSSD response: %v\n", sections)
+				var instance = ""
+				var domain = ""
+				var ip net.IP
+				var ttl uint32
 
-					var hasIP = false
+				for _, answer := range sections {
+					switch rr := answer.(type) {
+					case *dns.PTR:
+						domain = rr.Ptr
+						ttl = rr.Hdr.Ttl
 
-					for _, ans := range sections {
-						if ans.Header().Rrtype == dns.TypeA || ans.Header().Rrtype == dns.TypeAAAA {
-							hasIP = true
-							break
-						}
+					case *dns.A:
+						instance = strings.Split(rr.Hdr.Name, ".")[0]
+						ip = rr.A
 					}
-
-					if !hasIP {
-						c.query(&lookupParams{
-							ServiceRecord: *NewServiceRecord(rr.Ptr, params.Service, params.Domain),
-						})
-						continue
-					}
-
-					if _, ok := entries[rr.Ptr]; !ok {
-						entries[rr.Ptr] = NewServiceEntry(
-							trimDot(strings.Replace(rr.Ptr, rr.Hdr.Name, "", -1)),
-							params.Service,
-							params.Domain)
-					}
-					entries[rr.Ptr].TTL = rr.Hdr.Ttl
-				case *dns.SRV:
-					if params.ServiceInstanceName() != "" && params.ServiceInstanceName() != rr.Hdr.Name {
-						continue
-					} else if !strings.HasSuffix(rr.Hdr.Name, params.ServiceName()) {
-						continue
-					}
-					if _, ok := entries[rr.Hdr.Name]; !ok {
-						entries[rr.Hdr.Name] = NewServiceEntry(
-							trimDot(strings.Replace(rr.Hdr.Name, params.ServiceName(), "", 1)),
-							params.Service,
-							params.Domain)
-					}
-					entries[rr.Hdr.Name].HostName = rr.Target
-					entries[rr.Hdr.Name].Port = int(rr.Port)
-					entries[rr.Hdr.Name].TTL = rr.Hdr.Ttl
-				case *dns.TXT:
-					if params.ServiceInstanceName() != "" && params.ServiceInstanceName() != rr.Hdr.Name {
-						continue
-					} else if !strings.HasSuffix(rr.Hdr.Name, params.ServiceName()) {
-						continue
-					}
-					if _, ok := entries[rr.Hdr.Name]; !ok {
-						entries[rr.Hdr.Name] = NewServiceEntry(
-							trimDot(strings.Replace(rr.Hdr.Name, params.ServiceName(), "", 1)),
-							params.Service,
-							params.Domain)
-					}
-					entries[rr.Hdr.Name].Text = rr.Txt
-					entries[rr.Hdr.Name].TTL = rr.Hdr.Ttl
 				}
-			}
-			// Associate IPs in a second round as other fields should be filled by now.
-			for _, answer := range sections {
-				switch rr := answer.(type) {
-				case *dns.A:
-					for k, e := range entries {
-						if e.HostName == rr.Hdr.Name {
-							entries[k].AddrIPv4 = append(entries[k].AddrIPv4, rr.A)
+
+				entry := NewServiceEntry(
+					instance,
+					params.Service,
+					params.Domain)
+
+				entry.AddrIPv4 = append(entry.AddrIPv4, ip)
+				entry.TTL = ttl
+				//fmt.Printf("Adding DNSSD response: %s with %v\n", domain, entry)
+				entries[domain] = entry
+			} else {
+
+				for _, answer := range sections {
+					switch rr := answer.(type) {
+					case *dns.PTR:
+						//fmt.Printf("Params: %v\n", params)
+						if params.ServiceName() != rr.Hdr.Name {
+							continue
 						}
+						if params.ServiceInstanceName() != "" && params.ServiceInstanceName() != rr.Ptr {
+							continue
+						}
+
+						var hasIP = false
+
+						//fmt.Println("Finding if there is PTR with IP address for sections: %v\n", sections)
+
+						for _, ans := range sections {
+							if ans.Header().Rrtype == dns.TypeA || ans.Header().Rrtype == dns.TypeAAAA {
+								hasIP = true
+								break
+							}
+						}
+
+						if !hasIP {
+							splittedPtr := strings.Split(rr.Ptr, ".")
+							instance := splittedPtr[0]
+							service := splittedPtr[1] + "." + splittedPtr[2]
+							domain := strings.Trim(splittedPtr[3], ".")
+							c.query(&lookupParams{
+								ServiceRecord: *NewServiceRecord(instance, service, domain),
+							})
+						}
+
+						if _, ok := entries[rr.Ptr]; !ok {
+							entries[rr.Ptr] = NewServiceEntry(
+								trimDot(strings.Replace(rr.Ptr, rr.Hdr.Name, "", -1)),
+								params.Service,
+								params.Domain)
+						}
+						entries[rr.Ptr].TTL = rr.Hdr.Ttl
+					case *dns.SRV:
+						if params.ServiceInstanceName() != "" && params.ServiceInstanceName() != rr.Hdr.Name {
+							continue
+						} else if !strings.HasSuffix(rr.Hdr.Name, params.ServiceName()) {
+							continue
+						}
+						if _, ok := entries[rr.Hdr.Name]; !ok {
+							entries[rr.Hdr.Name] = NewServiceEntry(
+								trimDot(strings.Replace(rr.Hdr.Name, params.ServiceName(), "", 1)),
+								params.Service,
+								params.Domain)
+						}
+						entries[rr.Hdr.Name].HostName = rr.Target
+						entries[rr.Hdr.Name].Port = int(rr.Port)
+						entries[rr.Hdr.Name].TTL = rr.Hdr.Ttl
+					case *dns.TXT:
+						if params.ServiceInstanceName() != "" && params.ServiceInstanceName() != rr.Hdr.Name {
+							continue
+						} else if !strings.HasSuffix(rr.Hdr.Name, params.ServiceName()) {
+							continue
+						}
+						if _, ok := entries[rr.Hdr.Name]; !ok {
+							entries[rr.Hdr.Name] = NewServiceEntry(
+								trimDot(strings.Replace(rr.Hdr.Name, params.ServiceName(), "", 1)),
+								params.Service,
+								params.Domain)
+						}
+						entries[rr.Hdr.Name].Text = rr.Txt
+						entries[rr.Hdr.Name].TTL = rr.Hdr.Ttl
 					}
-				case *dns.AAAA:
-					for k, e := range entries {
-						if e.HostName == rr.Hdr.Name {
-							entries[k].AddrIPv6 = append(entries[k].AddrIPv6, rr.AAAA)
+
+				}
+				// Associate IPs in a second round as other fields should be filled by now.
+				for _, answer := range sections {
+					switch rr := answer.(type) {
+					case *dns.A:
+						fmt.Printf("Hdr name %s\n", rr.Hdr.Name)
+						for k, e := range entries {
+							fmt.Printf("e hostname %s\n", e.HostName)
+							if e.HostName == rr.Hdr.Name {
+								entries[k].AddrIPv4 = append(entries[k].AddrIPv4, rr.A)
+							}
+						}
+					case *dns.AAAA:
+						for k, e := range entries {
+							if e.HostName == rr.Hdr.Name {
+								entries[k].AddrIPv6 = append(entries[k].AddrIPv6, rr.AAAA)
+							}
 						}
 					}
 				}
@@ -319,6 +359,15 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 			}
 		}
 	}
+}
+
+func isDNSSDResponse(sections []dns.RR) bool {
+	for _, answer := range sections {
+		if "_services._dns-sd._udp.local." == answer.Header().Name {
+			return true
+		}
+	}
+	return false
 }
 
 // Shutdown client will close currently open connections and channel implicitly.
@@ -437,7 +486,9 @@ func (c *client) query(params *lookupParams) error {
 	// send the query
 	dnsMessage := new(dns.Msg)
 	if params.Instance != "" { // service instance name lookup
+
 		serviceInstanceName = fmt.Sprintf("%s.%s", params.Instance, serviceName)
+		//fmt.Printf("Quering IP for PTR: %s\n", serviceInstanceName)
 		dnsMessage.Question = []dns.Question{
 			{Name: serviceInstanceName, Qtype: dns.TypeSRV, Qclass: dns.ClassINET},
 			{Name: serviceInstanceName, Qtype: dns.TypeTXT, Qclass: dns.ClassINET},
@@ -451,6 +502,7 @@ func (c *client) query(params *lookupParams) error {
 	}
 	dnsMessage.RecursionDesired = false
 	if err := c.sendQuery(dnsMessage); err != nil {
+		fmt.Printf("Failed to send query: %v\n", err)
 		return err
 	}
 
