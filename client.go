@@ -310,7 +310,7 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 				for _, answer := range sections {
 					switch rr := answer.(type) {
 					case *dns.A:
-						fmt.Printf("Hdr name %s\n", rr.Hdr.Name)
+						//fmt.Printf("Hdr name %s\n", rr.Hdr.Name)
 						for k, e := range entries {
 							//fmt.Printf("e hostname %s\n", e.HostName)
 							if e.HostName == rr.Hdr.Name {
