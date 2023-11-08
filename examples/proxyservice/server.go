@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	name     = flag.String("name", "GoZeroconfGo", "The name for the service.")
+	name     = flag.String("name", "GonollakonffiGo", "The name for the service.")
 	service  = flag.String("service", "_workstation._tcp", "Set the service type of the new service.")
 	domain   = flag.String("domain", "local.", "Set the network domain. Default should be fine.")
 	host     = flag.String("host", "pc1", "Set host name for service.")
@@ -25,7 +25,7 @@ var (
 func main() {
 	flag.Parse()
 
-	server, err := zeroconf.RegisterProxy(*name, *service, *domain, *port, *host, []string{*ip}, []string{"txtv=0", "lo=1", "la=2"}, nil)
+	server, err := nollakonffi.RegisterProxy(*name, *service, *domain, *port, *host, []string{*ip}, []string{"txtv=0", "lo=1", "la=2"}, nil)
 	if err != nil {
 		panic(err)
 	}

@@ -1,4 +1,4 @@
-// Package zeroconf is a pure Golang library that employs Multicast DNS-SD for
+// Package nollakonffi is a pure Golang library that employs Multicast DNS-SD for
 // browsing and resolving services in your network and registering own services
 // in the local network.
 //
@@ -11,4 +11,4 @@
 // By now, it should be compatible to [Avahi](http://avahi.org/) (tested) and
 // Apple's Bonjour (untested). Should work in the most office, home and private
 // environments.
-package zeroconf
+package nollakonffi

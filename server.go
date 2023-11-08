@@ -1,4 +1,4 @@
-package zeroconf
+package nollakonffi
 
 import (
 	"errors"
@@ -159,11 +159,11 @@ type Server struct {
 func newServer(ifaces []net.Interface) (*Server, error) {
 	ipv4conn, err4 := joinUdp4Multicast(ifaces)
 	if err4 != nil {
-		log.Printf("[zeroconf] no suitable IPv4 interface: %s", err4.Error())
+		log.Printf("[nollakonffi] no suitable IPv4 interface: %s", err4.Error())
 	}
 	ipv6conn, err6 := joinUdp6Multicast(ifaces)
 	if err6 != nil {
-		log.Printf("[zeroconf] no suitable IPv6 interface: %s", err6.Error())
+		log.Printf("[nollakonffi] no suitable IPv6 interface: %s", err6.Error())
 	}
 	if err4 != nil && err6 != nil {
 		// No supported interface left.
@@ -289,7 +289,7 @@ func (s *Server) recv6(c *ipv6.PacketConn) {
 func (s *Server) parsePacket(packet []byte, ifIndex int, from net.Addr) error {
 	var msg dns.Msg
 	if err := msg.Unpack(packet); err != nil {
-		// log.Printf("[ERR] zeroconf: Failed to unpack packet: %v", err)
+		// log.Printf("[ERR] nollakonffi: Failed to unpack packet: %v", err)
 		return err
 	}
 	return s.handleQuery(&msg, ifIndex, from)
@@ -314,7 +314,7 @@ func (s *Server) handleQuery(query *dns.Msg, ifIndex int, from net.Addr) error {
 		resp.Answer = []dns.RR{}
 		resp.Extra = []dns.RR{}
 		if err = s.handleQuestion(q, &resp, query, ifIndex); err != nil {
-			// log.Printf("[ERR] zeroconf: failed to handle question %v: %v", q, err)
+			// log.Printf("[ERR] nollakonffi: failed to handle question %v: %v", q, err)
 			continue
 		}
 		// Check if there is an answer
@@ -525,7 +525,7 @@ func (s *Server) serviceTypeName(resp *dns.Msg, ttl uint32) {
 }
 
 // Perform probing & announcement
-//TODO: implement a proper probing & conflict resolution
+// TODO: implement a proper probing & conflict resolution
 func (s *Server) probe() {
 	q := new(dns.Msg)
 	q.SetQuestion(s.service.ServiceInstanceName(), dns.TypePTR)
@@ -558,7 +558,7 @@ func (s *Server) probe() {
 
 	for i := 0; i < multicastRepetitions; i++ {
 		if err := s.multicastResponse(q, 0); err != nil {
-			log.Println("[ERR] zeroconf: failed to send probe:", err.Error())
+			log.Println("[ERR] nollakonffi: failed to send probe:", err.Error())
 		}
 		time.Sleep(time.Duration(randomizer.Intn(250)) * time.Millisecond)
 	}
@@ -580,7 +580,7 @@ func (s *Server) probe() {
 			resp.Extra = []dns.RR{}
 			s.composeLookupAnswers(resp, s.ttl, intf.Index, true)
 			if err := s.multicastResponse(resp, intf.Index); err != nil {
-				log.Println("[ERR] zeroconf: failed to send announcement:", err.Error())
+				log.Println("[ERR] nollakonffi: failed to send announcement:", err.Error())
 			}
 		}
 		time.Sleep(timeout)

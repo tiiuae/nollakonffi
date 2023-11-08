@@ -19,13 +19,13 @@ func main() {
 	flag.Parse()
 
 	// Discover all services on the network (e.g. _workstation._tcp)
-	resolver, err := zeroconf.NewResolver(nil)
+	resolver, err := nollakonffi.NewResolver(nil)
 	if err != nil {
 		log.Fatalln("Failed to initialize resolver:", err.Error())
 	}
 
-	entries := make(chan *zeroconf.ServiceEntry)
-	go func(results <-chan *zeroconf.ServiceEntry) {
+	entries := make(chan *nollakonffi.ServiceEntry)
+	go func(results <-chan *nollakonffi.ServiceEntry) {
 		for entry := range results {
 			log.Println(entry)
 		}

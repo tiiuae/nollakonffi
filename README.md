@@ -1,6 +1,6 @@
-ZeroConf: Service Discovery with mDNS
+nollakonffi: Service Discovery with mDNS
 =====================================
-ZeroConf is a pure Golang library that employs Multicast DNS-SD for
+nollakonffi is a pure Golang library that employs Multicast DNS-SD for
 
 * browsing and resolving services in your network
 * registering own services
@@ -30,13 +30,13 @@ This package requires **Go 1.7** (context in std lib) or later.
 
 ```go
 // Discover all services on the network (e.g. _workstation._tcp)
-resolver, err := zeroconf.NewResolver(nil)
+resolver, err := nollakonffi.NewResolver(nil)
 if err != nil {
     log.Fatalln("Failed to initialize resolver:", err.Error())
 }
 
-entries := make(chan *zeroconf.ServiceEntry)
-go func(results <-chan *zeroconf.ServiceEntry) {
+entries := make(chan *nollakonffi.ServiceEntry)
+go func(results <-chan *nollakonffi.ServiceEntry) {
     for entry := range results {
         log.Println(entry)
     }
@@ -65,7 +65,7 @@ See https://github.com/hnybom/nollakonffi/blob/master/examples/resolv/client.go.
 ## Register a service
 
 ```go
-server, err := zeroconf.Register("GoZeroconf", "_workstation._tcp", "local.", 42424, []string{"txtv=0", "lo=1", "la=2"}, nil)
+server, err := nollakonffi.Register("Gonollakonffi", "_workstation._tcp", "local.", 42424, []string{"txtv=0", "lo=1", "la=2"}, nil)
 if err != nil {
     panic(err)
 }
