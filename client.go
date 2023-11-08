@@ -214,6 +214,23 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 					if params.ServiceInstanceName() != "" && params.ServiceInstanceName() != rr.Ptr {
 						continue
 					}
+
+					var hasIP = false
+
+					for _, ans := range sections {
+						if ans.Header().Rrtype == dns.TypeA || ans.Header().Rrtype == dns.TypeAAAA {
+							hasIP = true
+							break
+						}
+					}
+
+					if !hasIP {
+						c.query(&lookupParams{
+							ServiceRecord: *NewServiceRecord(rr.Ptr, params.Service, params.Domain),
+						})
+						continue
+					}
+
 					if _, ok := entries[rr.Ptr]; !ok {
 						entries[rr.Ptr] = NewServiceEntry(
 							trimDot(strings.Replace(rr.Ptr, rr.Hdr.Name, "", -1)),
@@ -418,20 +435,22 @@ func (c *client) query(params *lookupParams) error {
 	serviceName = fmt.Sprintf("%s.%s.", trimDot(params.Service), trimDot(params.Domain))
 
 	// send the query
-	m := new(dns.Msg)
+	dnsMessage := new(dns.Msg)
 	if params.Instance != "" { // service instance name lookup
 		serviceInstanceName = fmt.Sprintf("%s.%s", params.Instance, serviceName)
-		m.Question = []dns.Question{
+		dnsMessage.Question = []dns.Question{
 			{Name: serviceInstanceName, Qtype: dns.TypeSRV, Qclass: dns.ClassINET},
 			{Name: serviceInstanceName, Qtype: dns.TypeTXT, Qclass: dns.ClassINET},
+			{Name: serviceInstanceName, Qtype: dns.TypeA, Qclass: dns.ClassINET},
+			{Name: serviceInstanceName, Qtype: dns.TypeAAAA, Qclass: dns.ClassINET},
 		}
 	} else if len(params.Subtypes) > 0 { // service subtype browse
-		m.SetQuestion(params.Subtypes[0], dns.TypePTR)
+		dnsMessage.SetQuestion(params.Subtypes[0], dns.TypePTR)
 	} else { // service name browse
-		m.SetQuestion(serviceName, dns.TypePTR)
+		dnsMessage.SetQuestion(serviceName, dns.TypePTR)
 	}
-	m.RecursionDesired = false
-	if err := c.sendQuery(m); err != nil {
+	dnsMessage.RecursionDesired = false
+	if err := c.sendQuery(dnsMessage); err != nil {
 		return err
 	}
 
