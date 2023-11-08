@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	service  = flag.String("service", "_swarm._tcp", "Set the service category to look for devices.")
+	service  = flag.String("service", "_swarm3._tcp", "Set the service category to look for devices.")
 	domain   = flag.String("domain", "local", "Set the search domain. For local networks, default is fine.")
 	waitTime = flag.Int("wait", 20, "Duration in [s] to run discovery.")
 )

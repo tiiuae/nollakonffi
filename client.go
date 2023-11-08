@@ -312,7 +312,7 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 					case *dns.A:
 						fmt.Printf("Hdr name %s\n", rr.Hdr.Name)
 						for k, e := range entries {
-							fmt.Printf("e hostname %s\n", e.HostName)
+							//fmt.Printf("e hostname %s\n", e.HostName)
 							if e.HostName == rr.Hdr.Name {
 								entries[k].AddrIPv4 = append(entries[k].AddrIPv4, rr.A)
 							}
