@@ -227,12 +227,13 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 				entry := NewServiceEntry(
 					instance,
 					params.Service,
-					params.Domain)
+					domain)
 
 				entry.AddrIPv4 = append(entry.AddrIPv4, ip)
 				entry.TTL = ttl
-				//fmt.Printf("Adding DNSSD response: %s with %v\n", domain, entry)
-				entries[domain] = entry
+				key := instance + "." + domain
+				//fmt.Printf("Adding DNSSD response instance, domain, ip, ttl: %s, %s, %s, %d\n", instance, domain, ip, ttl)
+				entries[key] = entry
 			} else {
 
 				for _, answer := range sections {
@@ -262,6 +263,7 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 							instance := splittedPtr[0]
 							service := splittedPtr[1] + "." + splittedPtr[2]
 							domain := strings.Trim(splittedPtr[3], ".")
+
 							c.query(&lookupParams{
 								ServiceRecord: *NewServiceRecord(instance, service, domain),
 							})
@@ -280,6 +282,17 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 						} else if !strings.HasSuffix(rr.Hdr.Name, params.ServiceName()) {
 							continue
 						}
+						//fmt.Printf("found port for entry: %s, %d\n", rr.Hdr.Name, int(rr.Port))
+						if sentEntries[rr.Hdr.Name] != nil {
+
+							entry := sentEntries[rr.Hdr.Name]
+							entry.Port = int(rr.Port)
+							entry.HostName = rr.Target
+							fmt.Printf("Updating entry: %v\n", entry)
+							entries[rr.Hdr.Name] = entry
+							delete(sentEntries, rr.Hdr.Name)
+							continue
+						}
 						if _, ok := entries[rr.Hdr.Name]; !ok {
 							entries[rr.Hdr.Name] = NewServiceEntry(
 								trimDot(strings.Replace(rr.Hdr.Name, params.ServiceName(), "", 1)),
@@ -295,6 +308,7 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 						} else if !strings.HasSuffix(rr.Hdr.Name, params.ServiceName()) {
 							continue
 						}
+
 						if _, ok := entries[rr.Hdr.Name]; !ok {
 							entries[rr.Hdr.Name] = NewServiceEntry(
 								trimDot(strings.Replace(rr.Hdr.Name, params.ServiceName(), "", 1)),
