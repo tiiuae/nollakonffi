@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/hnybom/nollakonffi"
+	"github.com/tiiuae/nollakonffi"
 )
 
 var (

@@ -1,4 +1,4 @@
-module github.com/hnybom/nollakonffi
+module github.com/tiiuae/nollakonffi
 
 go 1.16
 

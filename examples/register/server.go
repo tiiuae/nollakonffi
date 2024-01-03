@@ -9,7 +9,7 @@ import (
 
 	"time"
 
-	"github.com/hnybom/nollakonffi"
+	"github.com/tiiuae/nollakonffi"
 )
 
 var (
