@@ -229,7 +229,7 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 					params.Service,
 					domain)
 
-				entry.AddrIPv4 = append(entry.AddrIPv4, ip)
+				entry.AddrIPv4 = []net.IP{ip}
 				entry.TTL = ttl
 				key := instance + "." + domain
 				//fmt.Printf("Adding DNSSD response instance, domain, ip, ttl: %s, %s, %s, %d\n", instance, domain, ip, ttl)
@@ -288,7 +288,6 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 							entry := sentEntries[rr.Hdr.Name]
 							entry.Port = int(rr.Port)
 							entry.HostName = rr.Target
-							fmt.Printf("Updating entry: %v\n", entry)
 							entries[rr.Hdr.Name] = entry
 							delete(sentEntries, rr.Hdr.Name)
 							continue
@@ -328,13 +327,13 @@ func (c *client) mainloop(ctx context.Context, params *lookupParams) {
 						for k, e := range entries {
 							//fmt.Printf("e hostname %s\n", e.HostName)
 							if e.HostName == rr.Hdr.Name {
-								entries[k].AddrIPv4 = append(entries[k].AddrIPv4, rr.A)
+								entries[k].AddrIPv4 = []net.IP{rr.A}
 							}
 						}
 					case *dns.AAAA:
 						for k, e := range entries {
 							if e.HostName == rr.Hdr.Name {
-								entries[k].AddrIPv6 = append(entries[k].AddrIPv6, rr.AAAA)
+								entries[k].AddrIPv6 = []net.IP{rr.AAAA}
 							}
 						}
 					}
